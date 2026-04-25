@@ -132,7 +132,8 @@ function KindHelp() {
             </div>
           </div>
           <div className="khp-foot">
-            Rule of thumb: pick an <b>agent</b> to set the mode, run a <b>prompt</b> to do a specific job.
+            <b>Prompts</b> tell GitHub Copilot what you want.{" "}
+            <b>Agents</b> tell GitHub Copilot how it's allowed to operate while doing it.
           </div>
         </div>
       )}

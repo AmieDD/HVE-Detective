@@ -99,7 +99,6 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
   display: inline-block; width: 3px; height: 3px;
   border-radius: 50%; background: var(--ink-4);
 }
-
 /* example prompts */
 .ex-wrap { margin-bottom: 22px; }
 .ex-label {
