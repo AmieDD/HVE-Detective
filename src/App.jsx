@@ -386,7 +386,7 @@ function App() {
     if (collection) xs = xs.filter(x => x.collection === collection);
     const q = query.trim();
     if (q) {
-      const results = search(fuseIndex, q);
+      const results = search(fuseIndex, q, enrichedItems);
       return results.filter(x => {
         if (kind !== 'all' && x.kind !== kind) return false;
         if (collection && x.collection !== collection) return false;
