@@ -3,14 +3,6 @@ import { COLLECTION_META, COLLECTION_ORDER } from './data/collectionMeta';
 import { KEYWORD_HINTS } from './data/keywordHints';
 import catalogData from './data/catalog.json';
 import { enrichItems, createSearchIndex, search, highlight, splitSentence } from './lib/search.jsx';
-import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakToggle, TweakRadio } from './components/TweaksPanel';
-
-// ---------- tweak defaults ----------
-const TWEAK_DEFAULTS = {
-  includeSubagents: true,
-  layout: "grouped",
-  matchStrictness: "balanced",
-};
 
 // ---------- components ----------
 
@@ -379,14 +371,11 @@ function App() {
   const [kind, setKind] = useState("all");
   const [collection, setCollection] = useState(null);
   const [open, setOpen] = useState(null);
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
 
   const all = useMemo(() => {
     if (!catalog) return [];
-    let xs = [...catalog.agents, ...catalog.prompts];
-    if (!t.includeSubagents) xs = xs.filter(x => !(x.kind === "agent" && x.subagent));
-    return xs;
-  }, [catalog, t.includeSubagents]);
+    return [...catalog.agents, ...catalog.prompts];
+  }, [catalog]);
 
   const enrichedItems = useMemo(() => enrichItems(all), [all]);
   const fuseIndex = useMemo(() => createSearchIndex(enrichedItems), [enrichedItems]);
@@ -395,14 +384,12 @@ function App() {
     let xs = enrichedItems;
     if (kind !== 'all') xs = xs.filter(x => x.kind === kind);
     if (collection) xs = xs.filter(x => x.collection === collection);
-    if (!t.includeSubagents) xs = xs.filter(x => !(x.kind === 'agent' && x.subagent));
     const q = query.trim();
     if (q) {
       const results = search(fuseIndex, q);
       return results.filter(x => {
         if (kind !== 'all' && x.kind !== kind) return false;
         if (collection && x.collection !== collection) return false;
-        if (!t.includeSubagents && x.kind === 'agent' && x.subagent) return false;
         return true;
       });
     }
@@ -410,7 +397,7 @@ function App() {
       if (a.kind !== b.kind) return a.kind === "agent" ? -1 : 1;
       return a.slug.localeCompare(b.slug);
     });
-  }, [enrichedItems, fuseIndex, kind, collection, query, t.includeSubagents]);
+  }, [enrichedItems, fuseIndex, kind, collection, query]);
 
   const groups = useMemo(() => {
     const g = {};
@@ -435,7 +422,7 @@ function App() {
   }, [all, kind]);
 
   const queryTerms = query.trim() ? query.trim().toLowerCase().split(/\s+/) : [];
-  const showGrouped = (t.layout === "grouped") && !collection && !query.trim();
+  const showGrouped = !collection && !query.trim();
 
   if (!catalog) return <div className="loading">Loading\u2026</div>;
 
@@ -466,7 +453,7 @@ function App() {
           <div className="result-summary">
             {filtered.length > 0
               ? <span><b>{filtered.length}</b> match{filtered.length !== 1 ? "es" : ""} for &ldquo;{query}&rdquo;</span>
-              : <span>No matches for &ldquo;{query}&rdquo; &mdash; try another term or loosen strictness in Tweaks.</span>}
+              : <span>No matches for &ldquo;{query}&rdquo; &mdash; try another term.</span>}
           </div>
         )}
 
@@ -478,32 +465,9 @@ function App() {
       <Drawer item={open} onClose={() => setOpen(null)} onJumpTo={setOpen} allItems={all} />
 
       <footer className="ft">
-        <div>Directory generated from <code>microsoft/hve-core</code> &middot; {catalog.agents.length + catalog.prompts.length} artifacts &middot; Toggle <b>Tweaks</b> to configure search behavior.</div>
+        <div>Directory generated from <code>microsoft/hve-core</code> &middot; {catalog.agents.length + catalog.prompts.length} artifacts</div>
         <div className="ft-made">Made by <b>Amie Dansby</b></div>
       </footer>
-
-      <TweaksPanel>
-        <TweakSection label="Search" />
-        <TweakRadio
-          label="Search strictness"
-          value={t.matchStrictness}
-          options={["loose", "balanced", "strict"]}
-          onChange={v => setTweak("matchStrictness", v)}
-        />
-
-        <TweakSection label="Catalog" />
-        <TweakToggle
-          label="Include subagents"
-          value={t.includeSubagents}
-          onChange={v => setTweak("includeSubagents", v)}
-        />
-        <TweakRadio
-          label="Browse layout"
-          value={t.layout}
-          options={["grouped", "flat"]}
-          onChange={v => setTweak("layout", v)}
-        />
-      </TweaksPanel>
     </div>
   );
 }
