@@ -10,6 +10,10 @@ export function enrichItems(items) {
 
 export function createSearchIndex(items) {
   return new Fuse(items, {
+    // TODO: Add `useTokenSearch: true` when Fuse.js v7.4.0 stable releases.
+    // Token search (BM25) improves multi-word queries beyond the 32-char Bitap limit.
+    // Preserves compatibility with the exact substring matching layer.
+    // Test "dt", "pr", "ado" abbreviation queries for regression before shipping.
     keys: [
       { name: 'searchHints', weight: 5 },
       { name: 'slug', weight: 4, getFn: (item) => (item.slug || '').replace(/-/g, ' ') },
@@ -53,9 +57,15 @@ export function search(fuseIndex, query, allItems) {
 
   // Exact substring matches — always included, ranked first
   const exact = allItems ? exactSubstringMatch(allItems, q, EXACT_KEYS) : [];
+  exact.forEach(item => { item._score = 0; item._matchType = 'exact'; });
 
-  // Fuse.js fuzzy matches
-  const fuzzy = fuseIndex.search(q).map(r => r.item);
+  // Fuse.js fuzzy matches — preserve score
+  const fuzzyResults = fuseIndex.search(q);
+  const fuzzy = fuzzyResults.map(r => {
+    r.item._score = r.score;
+    r.item._matchType = 'fuzzy';
+    return r.item;
+  });
 
   // Merge: exact first, then fuzzy-only (deduplicated)
   const seen = new Set(exact.map(x => x.slug || x.command));

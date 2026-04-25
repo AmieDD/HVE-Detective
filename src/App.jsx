@@ -201,6 +201,11 @@ function Card({ item, onOpen, queryTerms }) {
         {item.handoffs && item.handoffs.length > 0 && <span className="tag tag-hand">{item.handoffs.length} handoff{item.handoffs.length > 1 ? "s" : ""}</span>}
         {item.kind === "prompt" && item.agent && <span className="tag tag-agent">&rarr; {item.agent}</span>}
       </div>
+      {import.meta.env.DEV && item._score !== undefined && (
+        <span className="dev-score" title={`Match: ${item._matchType}`}>
+          {item._matchType === 'exact' ? 'exact' : item._score.toFixed(3)}
+        </span>
+      )}
     </button>
   );
 }

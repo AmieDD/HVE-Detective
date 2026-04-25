@@ -258,6 +258,7 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
 }
 
 .card {
+  position: relative;
   text-align: left; padding: 16px;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -480,4 +481,18 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
   .grid { grid-template-columns: 1fr; }
   .grp-note { display: none; }
   .drw { width: 100vw; }
+}
+
+.dev-score {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  font-family: monospace;
+  background: #1a1a2e;
+  color: #0f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  opacity: 0.8;
+  pointer-events: auto;
 }
