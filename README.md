@@ -10,7 +10,6 @@ Searchable directory of HVE Core Copilot agents and prompts.
 - Collection filters for browsing by source package
 - Kind filters to narrow results by agent, prompt, or instruction type
 - Detail drawer with full metadata and descriptions
-- Tweaks panel for tuning search sensitivity
 - Responsive design for desktop and mobile
 
 ## Local Development
