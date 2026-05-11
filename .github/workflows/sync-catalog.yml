@@ -1,0 +1,137 @@
+name: Sync HVE-Core Catalog
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [hve-core-release]
+
+permissions:
+  contents: write
+  pull-requests: write
+  attestations: read
+  id-token: write
+
+concurrency:
+  group: sync-catalog
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve latest stable hve-core release
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          releases=$(gh api repos/microsoft/hve-core/releases --paginate)
+          rel=$(jq -c '
+            [ .[]
+              | select(.draft == false)
+              | select(.prerelease == false)
+              | select(.tag_name | test("^hve-core-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+              | select(((.tag_name | capture("^hve-core-v(?<maj>[0-9]+)\\.(?<min>[0-9]+)\\.(?<pat>[0-9]+)$")) | (.min | tonumber) % 2) == 0)
+            ]
+            | sort_by(
+                (.tag_name | capture("^hve-core-v(?<maj>[0-9]+)\\.(?<min>[0-9]+)\\.(?<pat>[0-9]+)$"))
+                | [(.maj | tonumber), (.min | tonumber), (.pat | tonumber)]
+              )
+            | last
+          ' <<<"$releases")
+          if [ -z "$rel" ] || [ "$rel" = "null" ]; then
+            echo "No stable hve-core release found" >&2
+            exit 1
+          fi
+          tag=$(jq -r '.tag_name' <<<"$rel")
+          version=${tag#hve-core-v}
+          asset_name="hve-core-all-${version}.vsix"
+          asset_url=$(jq -r --arg n "$asset_name" '.assets[] | select(.name == $n) | .url' <<<"$rel")
+          if [ -z "$asset_url" ] || [ "$asset_url" = "null" ]; then
+            echo "Asset $asset_name not found on release $tag" >&2
+            exit 1
+          fi
+          echo "tag=$tag"             >> "$GITHUB_OUTPUT"
+          echo "version=$version"     >> "$GITHUB_OUTPUT"
+          echo "asset_url=$asset_url" >> "$GITHUB_OUTPUT"
+          echo "Resolved $tag -> $asset_url"
+
+      - name: Download VSIX
+        id: download
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASSET_URL: ${{ steps.resolve.outputs.asset_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p vendor
+          curl -sSL --fail \
+            -H "Accept: application/octet-stream" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o vendor/hve-core.vsix \
+            "$ASSET_URL"
+          sha256=$(sha256sum vendor/hve-core.vsix | awk '{print $1}')
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+          echo "Downloaded vendor/hve-core.vsix (sha256=$sha256)"
+
+      - name: Verify Sigstore attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh attestation verify vendor/hve-core.vsix -R microsoft/hve-core
+
+      - name: Unzip and locate package root
+        id: layout
+        run: |
+          set -euo pipefail
+          mkdir -p vendor/hve-core
+          unzip -q -o vendor/hve-core.vsix -d vendor/hve-core
+          if [ -d vendor/hve-core/extension/.github ]; then
+            pkg_root=vendor/hve-core/extension
+          elif [ -d vendor/hve-core/.github ]; then
+            echo "::warning::VSIX layout missing 'extension/' prefix; falling back to vendor/hve-core" >&2
+            pkg_root=vendor/hve-core
+          else
+            echo "Unexpected VSIX layout: neither vendor/hve-core/extension/.github nor vendor/hve-core/.github exists" >&2
+            exit 1
+          fi
+          echo "pkg_root=$pkg_root" >> "$GITHUB_OUTPUT"
+          echo "Using package root: $pkg_root"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate catalog
+        env:
+          PKG_ROOT: ${{ steps.layout.outputs.pkg_root }}
+        run: node scripts/generate-catalog.mjs "$PKG_ROOT"
+
+      - name: Create or update pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/sync-hve-core
+          delete-branch: true
+          add-paths: src/data/catalog.json
+          commit-message: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
+          title: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
+          author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          body: |
+            Automated catalog regeneration from verified hve-core VSIX.
+
+            - Tag: `${{ steps.resolve.outputs.tag }}`
+            - Asset: `hve-core-all-${{ steps.resolve.outputs.version }}.vsix`
+            - Asset URL: ${{ steps.resolve.outputs.asset_url }}
+            - SHA-256: `${{ steps.download.outputs.sha256 }}`
+
+            Sigstore attestation verified via `gh attestation verify -R microsoft/hve-core`.
