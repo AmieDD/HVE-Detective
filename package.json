@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "generate": "node scripts/generate-catalog.mjs"
+    "generate": "node scripts/generate-catalog.mjs vendor/hve-core/extension"
   },
   "dependencies": {
     "react": "^18.3.1",
