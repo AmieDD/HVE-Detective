@@ -79,12 +79,17 @@ function ExamplePrompts({ onPick }) {
   );
 }
 
-function Chip({ active, onClick, color, label, count }) {
+function Chip({ active, onClick, color, label, count, stability }) {
   return (
     <button className={"chip " + (active ? "chip-on " : "")} onClick={onClick}>
       <span className="chip-dot" style={{ background: color }} />
       <span>{label}</span>
       {count !== undefined && <span className="chip-count">{count}</span>}
+      {stability && (
+        <span className={"chip-stab stab-" + stability} title={stability.toUpperCase()}>
+          {stability.toUpperCase()}
+        </span>
+      )}
     </button>
   );
 }
@@ -168,6 +173,7 @@ function Filters({ kind, setKind, collection, setCollection, counts, collectionC
             color={COLLECTION_META[c].color}
             label={COLLECTION_META[c].label}
             count={collectionCounts[c]}
+            stability={COLLECTION_META[c].stability}
           />
         ))}
       </div>

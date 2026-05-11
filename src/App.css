@@ -221,12 +221,27 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
 .chip:hover { border-color: var(--line-2); }
 .chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .chip-count { color: var(--ink-4); font-size: 12px; margin-left: 2px; }
+.chip-stab {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-left: 2px;
+  line-height: 1;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.chip-stab.stab-stable        { background: #e6f4ea; color: #1e7a3a; border-color: #c7e6cf; }
+.chip-stab.stab-preview       { background: #fff4d6; color: #8a5a00; border-color: #f0dfa2; }
+.chip-stab.stab-experimental  { background: #f3e8ff; color: #6b21a8; border-color: #ddc7f6; }
 .chip-on {
   background: var(--ink);
   color: #fff;
   border-color: var(--ink);
 }
 .chip-on .chip-count { color: rgba(255,255,255,.65); }
+.chip-on .chip-stab  { background: rgba(255,255,255,.18); color: #fff; border-color: rgba(255,255,255,.28); }
 
 .result-summary {
   margin-bottom: 16px; color: var(--ink-3); font-size: 14px;
