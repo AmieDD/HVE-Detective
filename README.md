@@ -1,5 +1,7 @@
 # HVE Detective
 
+[![Deploy to GitHub Pages](https://github.com/AmieDD/HVE-Detective/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/AmieDD/HVE-Detective/actions/workflows/deploy.yml)
+
 Searchable directory of HVE Core Copilot agents and prompts.
 
 **Live site:** <https://amiedd.github.io/HVE-Detective/>
