@@ -10,10 +10,7 @@ export function enrichItems(items) {
 
 export function createSearchIndex(items) {
   return new Fuse(items, {
-    // TODO: Add `useTokenSearch: true` when Fuse.js v7.4.0 stable releases.
-    // Token search (BM25) improves multi-word queries beyond the 32-char Bitap limit.
-    // Preserves compatibility with the exact substring matching layer.
-    // Test "dt", "pr", "ado" abbreviation queries for regression before shipping.
+    useTokenSearch: true,
     keys: [
       { name: 'searchHints', weight: 5 },
       { name: 'slug', weight: 4, getFn: (item) => (item.slug || '').replace(/-/g, ' ') },
@@ -42,6 +39,14 @@ function exactSubstringMatch(items, query, keys) {
   );
 }
 
+function hasTokenInKeys(item, token, keys) {
+  return keys.some(k => {
+    const val = k.getFn ? k.getFn(item) : item[k.name];
+    if (Array.isArray(val)) return val.some(v => String(v).toLowerCase().includes(token));
+    return val != null && String(val).toLowerCase().includes(token);
+  });
+}
+
 const EXACT_KEYS = [
   { name: 'searchHints' },
   { name: 'slug', getFn: (item) => (item.slug || '').replace(/-/g, ' ') },
@@ -54,6 +59,7 @@ const EXACT_KEYS = [
 export function search(fuseIndex, query, allItems) {
   if (!query || !query.trim()) return [];
   const q = query.trim();
+  const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
 
   // Exact substring matches — always included, ranked first
   const exact = allItems ? exactSubstringMatch(allItems, q, EXACT_KEYS) : [];
@@ -61,11 +67,19 @@ export function search(fuseIndex, query, allItems) {
 
   // Fuse.js fuzzy matches — preserve score
   const fuzzyResults = fuseIndex.search(q);
-  const fuzzy = fuzzyResults.map(r => {
+  let fuzzy = fuzzyResults.map(r => {
     r.item._score = r.score;
     r.item._matchType = 'fuzzy';
     return r.item;
   });
+
+  // Multi-token precision guard: token search OR-matches per term across long
+  // description/intro fields, which lets unrelated items leak in for queries
+  // like "threat model service". Require every token to appear as a substring
+  // somewhere; single-token queries keep full fuzzy/typo tolerance.
+  if (tokens.length > 1) {
+    fuzzy = fuzzy.filter(item => tokens.every(t => hasTokenInKeys(item, t, EXACT_KEYS)));
+  }
 
   // Merge: exact first, then fuzzy-only (deduplicated)
   const seen = new Set(exact.map(x => x.slug || x.command));
