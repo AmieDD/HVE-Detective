@@ -50,53 +50,65 @@ jobs:
           fi
           tag=$(jq -r '.tag_name' <<<"$rel")
           version=${tag#hve-core-v}
-          asset_name="hve-core-all-${version}.vsix"
-          asset_url=$(jq -r --arg n "$asset_name" '.assets[] | select(.name == $n) | .url' <<<"$rel")
-          if [ -z "$asset_url" ] || [ "$asset_url" = "null" ]; then
-            echo "Asset $asset_name not found on release $tag" >&2
+
+          # Allow-list of per-package VSIXes (one per upstream chip; skip
+          # hve-core-all because it duplicates content, and hve-installer
+          # because it has no upstream chip).
+          pkgs=(hve-core hve-coding-standards hve-data-science hve-design-thinking \
+                hve-experimental hve-github hve-gitlab hve-ado hve-jira \
+                hve-project-planning hve-rai-planning hve-security)
+
+          : > assets.txt
+          for p in "${pkgs[@]}"; do
+            name="${p}-${version}.vsix"
+            url=$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .url' <<<"$rel")
+            if [ -z "$url" ] || [ "$url" = "null" ]; then
+              echo "::warning::Asset $name not present on $tag; skipping"
+              continue
+            fi
+            printf '%s\t%s\n' "$name" "$url" >> assets.txt
+          done
+
+          if ! [ -s assets.txt ]; then
+            echo "No per-package assets resolved on $tag" >&2
             exit 1
           fi
-          echo "tag=$tag"             >> "$GITHUB_OUTPUT"
-          echo "version=$version"     >> "$GITHUB_OUTPUT"
-          echo "asset_url=$asset_url" >> "$GITHUB_OUTPUT"
-          echo "Resolved $tag -> $asset_url"
 
-      - name: Download VSIX
-        id: download
+          echo "tag=$tag"         >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          {
+            echo 'asset_list<<EOF'
+            cut -f1 assets.txt
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved $tag with $(wc -l < assets.txt) per-package asset(s)"
+
+      - name: Download, verify, and merge VSIX packages
+        id: merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ASSET_URL: ${{ steps.resolve.outputs.asset_url }}
         run: |
           set -euo pipefail
-          mkdir -p vendor
-          curl -sSL --fail \
-            -H "Accept: application/octet-stream" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -o vendor/hve-core.vsix \
-            "$ASSET_URL"
-          sha256=$(sha256sum vendor/hve-core.vsix | awk '{print $1}')
-          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
-          echo "Downloaded vendor/hve-core.vsix (sha256=$sha256)"
+          mkdir -p vendor vendor/merged
+          while IFS=$'\t' read -r name url; do
+            echo "::group::$name"
+            curl -sSL --fail \
+              -H "Accept: application/octet-stream" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -o "vendor/${name}" "$url"
+            gh attestation verify "vendor/${name}" -R microsoft/hve-core
+            unzip -q -o "vendor/${name}" -d vendor/merged
+            echo "::endgroup::"
+          done < assets.txt
 
-      - name: Verify Sigstore attestation
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh attestation verify vendor/hve-core.vsix -R microsoft/hve-core
-
-      - name: Unzip and locate package root
-        id: layout
-        run: |
-          set -euo pipefail
-          mkdir -p vendor/hve-core
-          unzip -q -o vendor/hve-core.vsix -d vendor/hve-core
-          if [ -d vendor/hve-core/extension/.github ]; then
-            pkg_root=vendor/hve-core/extension
-          elif [ -d vendor/hve-core/.github ]; then
-            echo "::warning::VSIX layout missing 'extension/' prefix; falling back to vendor/hve-core" >&2
-            pkg_root=vendor/hve-core
+          if [ -d vendor/merged/extension/.github ]; then
+            pkg_root=vendor/merged/extension
+          elif [ -d vendor/merged/.github ]; then
+            echo "::warning::Merged VSIX layout missing 'extension/' prefix; falling back to vendor/merged" >&2
+            pkg_root=vendor/merged
           else
-            echo "Unexpected VSIX layout: neither vendor/hve-core/extension/.github nor vendor/hve-core/.github exists" >&2
+            echo "Unexpected merged layout: neither vendor/merged/extension/.github nor vendor/merged/.github exists" >&2
             exit 1
           fi
           echo "pkg_root=$pkg_root" >> "$GITHUB_OUTPUT"
@@ -113,7 +125,7 @@ jobs:
 
       - name: Regenerate catalog
         env:
-          PKG_ROOT: ${{ steps.layout.outputs.pkg_root }}
+          PKG_ROOT: ${{ steps.merge.outputs.pkg_root }}
         run: node scripts/generate-catalog.mjs "$PKG_ROOT"
 
       - name: Create or update pull request
@@ -127,11 +139,12 @@ jobs:
           author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
           committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
           body: |
-            Automated catalog regeneration from verified hve-core VSIX.
+            Automated catalog regeneration from verified hve-core VSIX packages.
 
             - Tag: `${{ steps.resolve.outputs.tag }}`
-            - Asset: `hve-core-all-${{ steps.resolve.outputs.version }}.vsix`
-            - Asset URL: ${{ steps.resolve.outputs.asset_url }}
-            - SHA-256: `${{ steps.download.outputs.sha256 }}`
+            - Packages merged:
+              ```
+              ${{ steps.resolve.outputs.asset_list }}
+              ```
 
-            Sigstore attestation verified via `gh attestation verify -R microsoft/hve-core`.
+            Each VSIX verified with `gh attestation verify -R microsoft/hve-core` before extraction.
