@@ -117,6 +117,7 @@ jobs:
         with:
           branch: chore/sync-hve-core
           delete-branch: true
+          add-paths: src/data/catalog.json
           commit-message: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
           title: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
           body: |
