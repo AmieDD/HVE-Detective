@@ -7,15 +7,18 @@ export const COLLECTION_META = {
   "coding-standards": { label: "Coding Standards", color: "#555555", note: "Code review — full, functional, standards", stability: "stable" },
   "ado": { label: "Azure DevOps", color: "#0078d4", note: "Work items, sprint planning, PRs via ADO", stability: "stable" },
   "github": { label: "GitHub", color: "#24292f", note: "Issues, backlog, triage via GitHub", stability: "stable" },
-  "jira": { label: "Jira", color: "#0052cc", note: "Jira work item workflows", stability: "experimental" },
-  "gitlab": { label: "GitLab", color: "#fc6d26", note: "GitLab merge requests and pipeline workflows", stability: "experimental" },
-  "rai-planning": { label: "RAI Planning", color: "#ad1457", note: "Responsible AI impact assessments", stability: null },
+  "jira": { label: "Jira", color: "#0052cc", note: "Jira work item workflows", stability: "stable" },
+  "gitlab": { label: "GitLab", color: "#fc6d26", note: "GitLab merge requests and pipeline workflows", stability: "stable" },
+  "rai-planning": { label: "RAI Planning", color: "#ad1457", note: "Responsible AI impact assessments", stability: "experimental" },
   "experimental": { label: "Experimental", color: "#8e4ec6", note: "Not yet stabilized — expect change", stability: "experimental" },
-  "root": { label: "General", color: "#6b7280", note: "Cross-cutting repo agents", stability: null },
+  // Fallback bucket for any artifact lacking a domain folder. Upstream's
+  // 11-collection taxonomy has no "General" entry, so this stays out of
+  // COLLECTION_ORDER and only renders if the generator emits stray root items.
+  "root": { label: "General", color: "#6b7280", note: "Uncategorized artifacts (no upstream collection)", stability: null },
 };
 
 export const COLLECTION_ORDER = [
   "hve-core","project-planning","security","coding-standards",
   "data-science","design-thinking","github","ado","jira","gitlab",
-  "rai-planning","experimental","root"
+  "rai-planning","experimental"
 ];
