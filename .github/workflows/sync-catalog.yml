@@ -13,6 +13,10 @@ permissions:
   attestations: read
   id-token: write
 
+concurrency:
+  group: sync-catalog
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -120,6 +124,8 @@ jobs:
           add-paths: src/data/catalog.json
           commit-message: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
           title: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
+          author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
           body: |
             Automated catalog regeneration from verified hve-core VSIX.
 
