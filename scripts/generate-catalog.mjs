@@ -195,6 +195,8 @@ async function generate(pkgRoot) {
   }
 
   catalog.generatedAt = new Date().toISOString();
+  const tag = process.env.HVE_CORE_TAG;
+  if (tag) catalog.sourceTag = tag;
   return catalog;
 }
 

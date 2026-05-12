@@ -496,7 +496,23 @@ function App() {
       <Drawer item={open} onClose={() => setOpen(null)} onJumpTo={setOpen} allItems={all} />
 
       <footer className="ft">
-        <div>Directory generated from <code>microsoft/hve-core</code> &middot; {catalog.agents.length + catalog.prompts.length} artifacts</div>
+        <div>
+          Directory generated from <code>microsoft/hve-core</code>
+          {catalog.sourceTag ? <> &middot; <code>{catalog.sourceTag}</code></> : null}
+          {' '}&middot; {catalog.agents.length + catalog.prompts.length} artifacts
+          {catalog.generatedAt ? (
+            <>
+              {' '}&middot; last synced{' '}
+              <time dateTime={catalog.generatedAt}>
+                {new Date(catalog.generatedAt).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </time>
+            </>
+          ) : null}
+        </div>
         <div className="ft-made">Made by <b>Amie Dansby</b></div>
       </footer>
     </div>

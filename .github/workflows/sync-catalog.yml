@@ -2,7 +2,7 @@ name: Sync HVE-Core Catalog
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 */6 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [hve-core-release]
@@ -28,29 +28,37 @@ jobs:
         id: resolve
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
         run: |
           set -euo pipefail
-          # Pick the highest-versioned non-draft release regardless of the
-          # prerelease flag. Upstream's active 3.3.x line is published with
-          # prerelease=true, and the only recent prerelease=false tag (3.2.2)
-          # ships empty-stub VSIXes for several collections.
-          releases=$(gh api repos/microsoft/hve-core/releases --paginate)
-          rel=$(jq -c '
-            [ .[]
-              | select(.draft == false)
-              | select(.tag_name | test("^hve-core-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
-            ]
-            | sort_by(
-                (.tag_name | capture("^hve-core-v(?<maj>[0-9]+)\\.(?<min>[0-9]+)\\.(?<pat>[0-9]+)$"))
-                | [(.maj | tonumber), (.min | tonumber), (.pat | tonumber)]
-              )
-            | last
-          ' <<<"$releases")
-          if [ -z "$rel" ] || [ "$rel" = "null" ]; then
-            echo "No hve-core release found" >&2
-            exit 1
+          # When fired via repository_dispatch with a client_payload.tag, use it
+          # directly and skip the release scan. Otherwise pick the highest-versioned
+          # non-draft release regardless of the prerelease flag. Upstream's active
+          # 3.3.x line is published with prerelease=true, and the only recent
+          # prerelease=false tag (3.2.2) ships empty-stub VSIXes for several
+          # collections.
+          if [ -n "${PAYLOAD_TAG:-}" ]; then
+            rel=$(gh api "repos/microsoft/hve-core/releases/tags/${PAYLOAD_TAG}")
+            tag="$PAYLOAD_TAG"
+          else
+            releases=$(gh api repos/microsoft/hve-core/releases --paginate)
+            rel=$(jq -c '
+              [ .[]
+                | select(.draft == false)
+                | select(.tag_name | test("^hve-core-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+              ]
+              | sort_by(
+                  (.tag_name | capture("^hve-core-v(?<maj>[0-9]+)\\.(?<min>[0-9]+)\\.(?<pat>[0-9]+)$"))
+                  | [(.maj | tonumber), (.min | tonumber), (.pat | tonumber)]
+                )
+              | last
+            ' <<<"$releases")
+            if [ -z "$rel" ] || [ "$rel" = "null" ]; then
+              echo "No hve-core release found" >&2
+              exit 1
+            fi
+            tag=$(jq -r '.tag_name' <<<"$rel")
           fi
-          tag=$(jq -r '.tag_name' <<<"$rel")
           version=${tag#hve-core-v}
 
           # Allow-list of per-package VSIXes (one per upstream chip; skip
@@ -128,6 +136,7 @@ jobs:
       - name: Regenerate catalog
         env:
           PKG_ROOT: ${{ steps.merge.outputs.pkg_root }}
+          HVE_CORE_TAG: ${{ steps.resolve.outputs.tag }}
         run: node scripts/generate-catalog.mjs "$PKG_ROOT"
 
       - name: Create or update pull request
