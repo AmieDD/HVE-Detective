@@ -40,15 +40,17 @@ The searchable catalog is generated from [`microsoft/hve-core`](https://github.c
 
 | Aspect          | Behavior                                                                                            |
 |-----------------|-----------------------------------------------------------------------------------------------------|
-| Schedule        | Daily at 06:00 UTC (`cron: '0 6 * * *'`)                                                            |
+| Schedule        | Every 6 hours (`cron: '0 */6 * * *'`)                                                               |
 | Manual trigger  | `workflow_dispatch` from the Actions tab                                                            |
-| Event trigger   | `repository_dispatch` of type `hve-core-release`                                                    |
+| Event trigger   | `repository_dispatch` of type `hve-core-release` (optional `client_payload.tag` short-circuits scan) |
 | Source release  | Highest-versioned non-draft tag matching `hve-core-vMAJOR.MINOR.PATCH`                              |
 | Packages merged | 12 per-collection VSIXes (for example, `hve-core`, `hve-coding-standards`, `hve-security`)          |
 | Supply chain    | Each VSIX verified with `gh attestation verify -R microsoft/hve-core` before extraction             |
 | Output          | PR on branch `chore/sync-hve-core` updating only `src/data/catalog.json`, awaiting maintainer merge |
 
 Once the PR merges to `main`, the Pages deploy workflow publishes the refreshed catalog to <https://amiedd.github.io/HVE-Detective/>.
+
+For sync failures and manual recovery commands, see [docs/SYNC.md](docs/SYNC.md).
 
 ## Technology Stack
 
