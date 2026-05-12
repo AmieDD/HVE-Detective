@@ -34,12 +34,17 @@ Auto-deploys to GitHub Pages via GitHub Actions on every push to `main`.
 
 ## Technology Stack
 
-| Tool | Version |
-|------|---------|
-| Vite | 6 |
-| React | 18 |
-| Fuse.js | 7 |
-
+| Tool                 | Version | Purpose                                              |
+|----------------------|---------|------------------------------------------------------|
+| Vite                 | 6       | Dev server and build tool                            |
+| React                | 18      | UI framework                                         |
+| React DOM            | 18      | React renderer for the browser                       |
+| Fuse.js              | 7       | Fuzzy search over the catalog                        |
+| @vitejs/plugin-react | 4       | React Fast Refresh and JSX support for Vite          |
+| gray-matter          | 4       | YAML frontmatter parsing in the catalog generator    |
+| Node.js              | 20      | Runtime for `scripts/generate-catalog.mjs` and CI    |
+| GitHub Actions       | n/a     | CI/CD: deploy to GitHub Pages, catalog sync, CodeQL  |
+| CodeQL               | v3      | Code scanning on push/PR to `main`                   |
 
 ## License
 
