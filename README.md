@@ -8,6 +8,8 @@ Searchable directory of HVE Core Copilot agents and prompts.
 
 **Live site:** <https://amiedd.github.io/HVE-Detective/>
 
+![HVE Detective search interface showing agent and prompt catalog](docs/hve-detective-screenshot.png)
+
 ## Features
 
 - Fuzzy search powered by Fuse.js
