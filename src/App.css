@@ -248,6 +248,17 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
 }
 .result-summary b { color: var(--ink); }
 
+.empty-state {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ink-3);
+  border: 1px dashed var(--border, #e2e2e2);
+  border-radius: 12px;
+  margin: 8px 0 24px;
+}
+.empty-state p { margin: 6px 0; }
+.empty-state a { color: var(--ink); text-decoration: underline; }
+
 /* grouped */
 .grouped { display: flex; flex-direction: column; gap: 36px; }
 .grp-hd {
