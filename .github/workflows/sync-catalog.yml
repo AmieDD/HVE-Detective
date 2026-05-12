@@ -24,19 +24,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Resolve latest stable hve-core release
+      - name: Resolve latest hve-core release
         id: resolve
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          # Pick the highest-versioned non-draft release regardless of the
+          # prerelease flag. Upstream's active 3.3.x line is published with
+          # prerelease=true, and the only recent prerelease=false tag (3.2.2)
+          # ships empty-stub VSIXes for several collections.
           releases=$(gh api repos/microsoft/hve-core/releases --paginate)
           rel=$(jq -c '
             [ .[]
               | select(.draft == false)
-              | select(.prerelease == false)
               | select(.tag_name | test("^hve-core-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
-              | select(((.tag_name | capture("^hve-core-v(?<maj>[0-9]+)\\.(?<min>[0-9]+)\\.(?<pat>[0-9]+)$")) | (.min | tonumber) % 2) == 0)
             ]
             | sort_by(
                 (.tag_name | capture("^hve-core-v(?<maj>[0-9]+)\\.(?<min>[0-9]+)\\.(?<pat>[0-9]+)$"))
@@ -45,7 +47,7 @@ jobs:
             | last
           ' <<<"$releases")
           if [ -z "$rel" ] || [ "$rel" = "null" ]; then
-            echo "No stable hve-core release found" >&2
+            echo "No hve-core release found" >&2
             exit 1
           fi
           tag=$(jq -r '.tag_name' <<<"$rel")
