@@ -1,8 +1,14 @@
 # HVE Detective
 
+[![Deploy to GitHub Pages](https://github.com/AmieDD/HVE-Detective/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/AmieDD/HVE-Detective/actions/workflows/deploy.yml)
+[![Sync catalog from hve-core](https://github.com/AmieDD/HVE-Detective/actions/workflows/sync-catalog.yml/badge.svg?branch=main)](https://github.com/AmieDD/HVE-Detective/actions/workflows/sync-catalog.yml)
+[![hve-core snapshot](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FAmieDD%2FHVE-Detective%2Fmain%2Fsrc%2Fdata%2Fcatalog.json&query=%24.source.committedAt&label=hve-core%20snapshot&cacheSeconds=3600)](https://github.com/AmieDD/HVE-Detective/actions/workflows/sync-catalog.yml)
+
 Searchable directory of HVE Core Copilot agents, prompts, and skills.
 
 **Live site:** <https://amiedd.github.io/HVE-Detective/>
+
+![HVE Detective search interface showing agent and prompt catalog](docs/hve-detective-screenshot.png)
 
 ## Features
 
@@ -78,11 +84,17 @@ After the workflow first reaches `main`, confirm it end to end:
 
 ## Technology Stack
 
-| Tool | Version |
-|------|---------|
-| Vite | 6 |
-| React | 18 |
-| Fuse.js | 7 |
+| Tool                 | Version | Purpose                                              |
+|----------------------|---------|------------------------------------------------------|
+| Vite                 | 6       | Dev server and build tool                            |
+| React                | 18      | UI framework                                         |
+| React DOM            | 18      | React renderer for the browser                       |
+| Fuse.js              | 7       | Fuzzy search over the catalog                        |
+| @vitejs/plugin-react | 4       | React Fast Refresh and JSX support for Vite          |
+| yaml                 | 2       | YAML frontmatter parsing in the catalog generator    |
+| Node.js              | 20      | Runtime for `scripts/build-catalog.mjs` and CI       |
+| GitHub Actions       | n/a     | CI/CD: deploy to GitHub Pages, catalog sync, CodeQL  |
+| CodeQL               | v3      | Code scanning on push/PR to `main`                   |
 
 ## Content Attribution
 

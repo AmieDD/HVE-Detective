@@ -81,12 +81,17 @@ function ExamplePrompts({ onPick }) {
   );
 }
 
-function Chip({ active, onClick, color, label, count }) {
+function Chip({ active, onClick, color, label, count, stability }) {
   return (
     <button className={"chip " + (active ? "chip-on " : "")} onClick={onClick}>
       <span className="chip-dot" style={{ background: color }} />
       <span>{label}</span>
       {count !== undefined && <span className="chip-count">{count}</span>}
+      {stability && (
+        <span className={"chip-stab stab-" + stability} title={stability.toUpperCase()}>
+          {stability.toUpperCase()}
+        </span>
+      )}
     </button>
   );
 }
@@ -153,7 +158,7 @@ function KindHelp() {
   );
 }
 
-function Filters({ kind, setKind, collection, setCollection, counts, collectionCounts }) {
+function Filters({ kind, setKind, collection, setCollection, counts, collectionCounts, collectionPresent }) {
   return (
     <div className="filters">
       <div className="filter-row">
@@ -175,7 +180,7 @@ function Filters({ kind, setKind, collection, setCollection, counts, collectionC
       </div>
       <div className="filter-row filter-chips">
         <Chip active={!collection} onClick={() => setCollection(null)} color="#111" label="All collections" />
-        {COLLECTION_ORDER.filter(c => collectionCounts[c]).map(c => (
+        {COLLECTION_ORDER.filter(c => collectionPresent[c]).map(c => (
           <Chip
             key={c}
             active={collection === c}
@@ -183,6 +188,7 @@ function Filters({ kind, setKind, collection, setCollection, counts, collectionC
             color={COLLECTION_META[c].color}
             label={COLLECTION_META[c].label}
             count={collectionCounts[c]}
+            stability={COLLECTION_META[c].stability}
           />
         ))}
       </div>
@@ -481,6 +487,15 @@ function App() {
     return cc;
   }, [all, kind]);
 
+  const collectionPresent = useMemo(() => {
+    const cp = {};
+    if (!catalog) return cp;
+    for (const k of ["agents", "prompts", "instructions", "skills"]) {
+      for (const x of (catalog[k] || [])) cp[x.collection] = true;
+    }
+    return cp;
+  }, [catalog]);
+
   const queryTerms = query.trim() ? query.trim().toLowerCase().split(/\s+/) : [];
   const showGrouped = !collection && !query.trim();
 
@@ -509,6 +524,7 @@ function App() {
           collection={collection} setCollection={setCollection}
           counts={counts}
           collectionCounts={collectionCounts}
+          collectionPresent={collectionPresent}
         />
         {query.trim() && (
           <div className="result-summary">
@@ -518,7 +534,16 @@ function App() {
           </div>
         )}
 
-        {showGrouped
+        {collection && filtered.length === 0 && !query.trim() ? (
+          <div className="empty-state">
+            <p>
+              <strong>{COLLECTION_META[collection].label}</strong> has no {kind === "all" ? "items" : kind + "s"} to list here.
+            </p>
+            <p>
+              See <a href={"https://microsoft.github.io/hve-core/docs/getting-started/collections/#" + collection} target="_blank" rel="noreferrer">the upstream collection page</a> for details.
+            </p>
+          </div>
+        ) : showGrouped
           ? <GroupedView groups={groups} onOpen={setOpen} queryTerms={queryTerms} />
           : <FlatView items={filtered} onOpen={setOpen} queryTerms={queryTerms} />}
       </div>
