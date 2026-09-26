@@ -194,10 +194,17 @@ function collectItems(source, manifest, errors) {
         file = join(resolved.full, 'SKILL.md');
         segments.push('SKILL.md');
       }
-      if (!existsSync(file) || !statSync(file).isFile()) { errors.push(`${label} is missing on disk`); continue; }
+      let text;
+      try {
+        text = readFileSync(file, 'utf8');
+      } catch (err) {
+        const missing = err.code === 'ENOENT' || err.code === 'EISDIR' || err.code === 'ENOTDIR';
+        errors.push(`${label} ${missing ? 'is missing on disk' : `could not be read (${err.code})`}`);
+        continue;
+      }
       let parsed;
       try {
-        parsed = splitFrontmatter(readFileSync(file, 'utf8'));
+        parsed = splitFrontmatter(text);
       } catch (err) {
         errors.push(`${label} has invalid frontmatter YAML (${err.code ?? 'parse error'})`);
         continue;
