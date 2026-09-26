@@ -285,6 +285,7 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
 }
 .k-agent { background: #eef0fb; color: #3848a8; }
 .k-prompt { background: #fdf2e4; color: #a05a1a; }
+.k-skill { background: #e6f6ee; color: #1f7a4d; }
 
 .card-name {
   font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
@@ -312,6 +313,7 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
 .tag-orch { background: #dbeafe; color: #1e40af; }
 .tag-hand { background: #e6fbe5; color: #1e6b1f; }
 .tag-manual { background: #fef0e8; color: #9a3a12; }
+.tag-auto { background: #eef6f1; color: #2f6b4a; }
 .tag-agent {
   background: transparent; color: var(--ink-3);
   border: 1px dashed var(--line-2);

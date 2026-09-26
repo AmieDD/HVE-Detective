@@ -7,7 +7,7 @@ import { enrichItems, createSearchIndex, search, highlight, splitSentence } from
 // ---------- components ----------
 
 function Header({ query, setQuery, stats }) {
-  const placeholder = "search agents and prompts, e.g. threat model, jupyter, pull request\u2026";
+  const placeholder = "search agents, prompts, and skills, e.g. threat model, jupyter, pull request\u2026";
   return (
     <header className="hd">
       <div className="hd-top">
@@ -19,7 +19,7 @@ function Header({ query, setQuery, stats }) {
           </div>
           <div>
             <div className="hd-title">HVE Core</div>
-            <div className="hd-sub">Agent &amp; Prompt Directory</div>
+            <div className="hd-sub">Agent, Prompt &amp; Skill Directory</div>
           </div>
         </div>
         <a className="hd-src" href="https://microsoft.github.io/hve-core/" target="_blank" rel="noreferrer">docs ↗</a>
@@ -51,6 +51,8 @@ function Header({ query, setQuery, stats }) {
           <span className="dot" />
           <span><b>{stats.prompts}</b> prompts</span>
           <span className="dot" />
+          <span><b>{stats.skills}</b> skills</span>
+          <span className="dot" />
           <span><b>{stats.collections}</b> collections</span>
         </div>
       </div>
@@ -60,11 +62,11 @@ function Header({ query, setQuery, stats }) {
 
 function ExamplePrompts({ onPick }) {
   const examples = [
-    "search and document through an existing codebase",
+    "document existing code",
     "turn a meeting transcript into tickets",
-    "write a threat model for my service",
-    "make a slide deck from my notes",
-    "plan a sprint from a PRD",
+    "threat model my service",
+    "slide deck from notes",
+    "turn a PRD into work items",
     "review this pull request",
   ];
   return (
@@ -106,7 +108,7 @@ function KindHelp() {
         className={"kind-help-btn " + (open ? "on" : "")}
         onClick={() => setOpen(v => !v)}
         onMouseEnter={() => setOpen(true)}
-        aria-label="What's the difference between agents and prompts?"
+        aria-label="What's the difference between agents, prompts, and skills?"
         aria-expanded={open}
       >
         <span className="kind-help-ico" aria-hidden="true">?</span>
@@ -131,9 +133,19 @@ function KindHelp() {
               (draft a PRD, review a PR, generate a notebook).
             </div>
           </div>
+          <div className="khp-sep" />
+          <div className="khp-row">
+            <span className="kbadge k-skill">SKILL</span>
+            <div className="khp-text">
+              <b>A packaged capability</b> Copilot can load. Most are slash commands you type,
+              like <code>/rpi-plan</code>. Others are background knowledge that Copilot loads
+              automatically when a task needs it.
+            </div>
+          </div>
           <div className="khp-foot">
             <b>Prompts</b> tell GitHub Copilot what you want.{" "}
-            <b>Agents</b> tell GitHub Copilot how it's allowed to operate while doing it.
+            <b>Agents</b> tell GitHub Copilot how it's allowed to operate while doing it.{" "}
+            <b>Skills</b> give it the know-how.
           </div>
         </div>
       )}
@@ -155,6 +167,9 @@ function Filters({ kind, setKind, collection, setCollection, counts, collectionC
           <button className={kind === "prompt" ? "on" : ""} onClick={() => setKind("prompt")}>
             Prompts <span className="seg-count">{counts.prompt}</span>
           </button>
+          <button className={kind === "skill" ? "on" : ""} onClick={() => setKind("skill")}>
+            Skills <span className="seg-count">{counts.skill}</span>
+          </button>
         </div>
         <KindHelp />
       </div>
@@ -175,8 +190,15 @@ function Filters({ kind, setKind, collection, setCollection, counts, collectionC
   );
 }
 
+const KIND_LABELS = { agent: "AGENT", prompt: "PROMPT", skill: "SKILL" };
+const KIND_ORDER = { agent: 0, prompt: 1, skill: 2 };
+
 function KindBadge({ kind }) {
-  return <span className={"kbadge k-" + kind}>{kind === "agent" ? "AGENT" : "PROMPT"}</span>;
+  return <span className={"kbadge k-" + kind}>{KIND_LABELS[kind] || kind.toUpperCase()}</span>;
+}
+
+function showsCommand(item) {
+  return item.kind === "prompt" || (item.kind === "skill" && item.userInvocable);
 }
 
 function Card({ item, onOpen, queryTerms }) {
@@ -192,11 +214,12 @@ function Card({ item, onOpen, queryTerms }) {
         <KindBadge kind={item.kind} />
       </div>
       <div className="card-name">
-        {item.kind === "prompt" ? <code className="card-cmd">{item.command}</code> : <span>{item.name}</span>}
+        {showsCommand(item) ? <code className="card-cmd">{item.command}</code> : <span>{item.name}</span>}
       </div>
       <div className="card-desc">{highlight(headline, queryTerms)}</div>
       <div className="card-tags">
         {item.subagent && <span className="tag tag-sub">subagent</span>}
+        {item.kind === "skill" && !item.userInvocable && <span className="tag tag-auto">loaded automatically</span>}
         {item.disableModelInvocation && <span className="tag tag-manual">manual-select</span>}
         {item.subagents && item.subagents.length > 0 && <span className="tag tag-orch">orchestrates {item.subagents.length}</span>}
         {item.handoffs && item.handoffs.length > 0 && <span className="tag tag-hand">{item.handoffs.length} handoff{item.handoffs.length > 1 ? "s" : ""}</span>}
@@ -211,7 +234,7 @@ function Card({ item, onOpen, queryTerms }) {
   );
 }
 
-function Drawer({ item, onClose, onJumpTo, allItems }) {
+function Drawer({ item, onClose, onJumpTo, allItems, source }) {
   useEffect(() => {
     if (!item) return;
     const h = e => { if (e.key === "Escape") onClose(); };
@@ -220,7 +243,7 @@ function Drawer({ item, onClose, onJumpTo, allItems }) {
   }, [item, onClose]);
   if (!item) return null;
   const c = COLLECTION_META[item.collection] || COLLECTION_META.root;
-  const byName = Object.fromEntries(allItems.map(x => [String(x.name || "").toLowerCase(), x]));
+  const byName = Object.fromEntries(allItems.filter(x => x.kind === "agent").map(x => [String(x.name || "").toLowerCase(), x]));
   const resolveAgent = n => byName[String(n || "").toLowerCase()];
 
   return (
@@ -237,7 +260,7 @@ function Drawer({ item, onClose, onJumpTo, allItems }) {
             <button className="drw-close" onClick={onClose} aria-label="Close">✕</button>
           </div>
           <h2 className="drw-title">
-            {item.kind === "prompt" ? <code>{item.command}</code> : item.name}
+            {showsCommand(item) ? <code>{item.command}</code> : item.name}
           </h2>
           {item.kind === "prompt" && item.agent && (
             <div className="drw-meta">
@@ -248,7 +271,13 @@ function Drawer({ item, onClose, onJumpTo, allItems }) {
           {item.argumentHint && (
             <div className="drw-meta">
               <span className="drw-meta-k">Usage</span>
-              <code className="drw-meta-v mono">{item.kind === "prompt" ? item.command + " " : ""}{item.argumentHint}</code>
+              <code className="drw-meta-v mono">{showsCommand(item) ? item.command + " " : ""}{item.argumentHint}</code>
+            </div>
+          )}
+          {item.kind === "skill" && item.license && (
+            <div className="drw-meta">
+              <span className="drw-meta-k">License</span>
+              <code className="drw-meta-v mono">{item.license}</code>
             </div>
           )}
         </div>
@@ -323,9 +352,27 @@ function Drawer({ item, onClose, onJumpTo, allItems }) {
             </section>
           )}
 
+          {item.kind === "skill" && (
+            <section className="sec">
+              <h3>How you invoke it</h3>
+              {item.userInvocable ? (
+                <>
+                  <p>Type <code>{item.command}</code> in Copilot Chat{item.argumentHint ? <> with <code>{item.argumentHint}</code></> : null}.</p>
+                  <p className="sec-note">
+                    Installed as the hve-core plugin? Use <code>/hve-core:{item.name}</code> instead.
+                  </p>
+                </>
+              ) : (
+                <p className="sec-note">
+                  Loaded automatically. Copilot pulls this skill in when a task needs it; it doesn't appear in the <code>/</code> menu.
+                </p>
+              )}
+            </section>
+          )}
+
           {item.headings && item.headings.length > 0 && (
             <section className="sec">
-              <h3>In the prompt</h3>
+              <h3>{item.kind === "skill" ? "In the skill" : "In the prompt"}</h3>
               <ul className="outline">
                 {item.headings.map((h, i) => <li key={i} className={"ol-l" + h.level}>{h.text}</li>)}
               </ul>
@@ -333,7 +380,12 @@ function Drawer({ item, onClose, onJumpTo, allItems }) {
           )}
 
           <section className="sec sec-foot">
-            <div className="pathrow"><span className="drw-meta-k">Source</span><code className="mono">.github/{item.path}</code></div>
+            <div className="pathrow">
+              <span className="drw-meta-k">Source</span>
+              <a className="link" href={`https://github.com/${source.repo}/blob/${source.sha}/.github/${encodeURI(item.path)}`} target="_blank" rel="noreferrer">
+                <code className="mono">.github/{item.path}</code>
+              </a>
+            </div>
             <div className="pathrow"><span className="drw-meta-k">Lines</span><code className="mono">{item.lineCount}</code></div>
           </section>
         </div>
@@ -380,7 +432,7 @@ function App() {
 
   const all = useMemo(() => {
     if (!catalog) return [];
-    return [...catalog.agents, ...catalog.prompts];
+    return [...catalog.agents, ...catalog.prompts, ...catalog.skills];
   }, [catalog]);
 
   const enrichedItems = useMemo(() => enrichItems(all), [all]);
@@ -399,8 +451,9 @@ function App() {
         return true;
       });
     }
-    return xs.sort((a, b) => {
-      if (a.kind !== b.kind) return a.kind === "agent" ? -1 : 1;
+    // Copy before sorting: the Fuse index holds a reference to enrichedItems and maps results by position.
+    return [...xs].sort((a, b) => {
+      if (a.kind !== b.kind) return KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
       return a.slug.localeCompare(b.slug);
     });
   }, [enrichedItems, fuseIndex, kind, collection, query]);
@@ -417,6 +470,7 @@ function App() {
       all: baseFn(all).length,
       agent: baseFn(all.filter(x => x.kind === "agent")).length,
       prompt: baseFn(all.filter(x => x.kind === "prompt")).length,
+      skill: baseFn(all.filter(x => x.kind === "skill")).length,
     };
   }, [all, collection]);
 
@@ -435,7 +489,8 @@ function App() {
   const stats = {
     agents: catalog.agents.length,
     prompts: catalog.prompts.length,
-    collections: Object.keys(COLLECTION_META).filter(k => (catalog.agents.concat(catalog.prompts)).some(x => x.collection === k)).length,
+    skills: catalog.skills.length,
+    collections: Object.keys(COLLECTION_META).filter(k => all.some(x => x.collection === k)).length,
   };
 
   return (
@@ -468,10 +523,22 @@ function App() {
           : <FlatView items={filtered} onOpen={setOpen} queryTerms={queryTerms} />}
       </div>
 
-      <Drawer item={open} onClose={() => setOpen(null)} onJumpTo={setOpen} allItems={all} />
+      <Drawer item={open} onClose={() => setOpen(null)} onJumpTo={setOpen} allItems={all} source={catalog.source} />
 
       <footer className="ft">
-        <div>Directory generated from <code>microsoft/hve-core</code> &middot; {catalog.agents.length + catalog.prompts.length} artifacts</div>
+        <div>
+          Directory generated from{" "}
+          <a className="link" href={`https://github.com/${catalog.source.repo}/tree/${catalog.source.sha}`} target="_blank" rel="noreferrer">
+            <code>{catalog.source.repo}</code> @ <code>{catalog.source.sha.slice(0, 7)}</code>
+          </a>{" "}
+          &middot; {all.length} artifacts
+        </div>
+        <div className="ft-made">
+          Names, descriptions, and outlines are excerpted from hve-core, &copy; Microsoft Corporation,{" "}
+          <a className="link" href={`https://github.com/${catalog.source.repo}/blob/${catalog.source.sha}/LICENSE`} target="_blank" rel="noreferrer">MIT License</a>.
+          Some skills carry Creative Commons or other licenses, shown on each skill.{" "}
+          <a className="link" href="https://github.com/amiedd/HVE-Detective/blob/main/THIRD-PARTY-NOTICES.md" target="_blank" rel="noreferrer">Third-party notices</a>
+        </div>
         <div className="ft-made">Made by <b>Amie Dansby</b></div>
       </footer>
     </div>

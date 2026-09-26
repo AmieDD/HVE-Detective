@@ -67,9 +67,10 @@ export function search(fuseIndex, query, allItems) {
     return r.item;
   });
 
-  // Merge: exact first, then fuzzy-only (deduplicated)
-  const seen = new Set(exact.map(x => x.slug || x.command));
-  return [...exact, ...fuzzy.filter(x => !seen.has(x.slug || x.command))];
+  // Merge: exact first, then fuzzy-only (deduplicated); same slug can exist as agent and skill
+  const key = x => x.kind + '/' + (x.slug || x.command);
+  const seen = new Set(exact.map(key));
+  return [...exact, ...fuzzy.filter(x => !seen.has(key(x)))];
 }
 
 export function splitSentence(s) {

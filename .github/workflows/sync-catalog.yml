@@ -1,0 +1,90 @@
+name: Sync catalog from hve-core
+
+on:
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'microsoft/hve-core branch or tag to sync from'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-catalog
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # Only run default-branch code with write credentials; hard-coded like deploy.yml.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REF: ${{ inputs.ref || 'main' }}
+      SYNC_BRANCH: catalog-sync/hve-core
+      BASE_BRANCH: main
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate upstream ref
+        run: |
+          if ! [[ "$UPSTREAM_REF" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ ]] || [[ "$UPSTREAM_REF" == *..* ]]; then
+            echo "::error::Invalid upstream ref. Use a branch or tag name."
+            exit 1
+          fi
+
+      - name: Clone microsoft/hve-core
+        run: git clone --depth 1 --branch "$UPSTREAM_REF" https://github.com/microsoft/hve-core.git "$RUNNER_TEMP/hve-core"
+
+      - name: Regenerate catalog
+        run: npm run catalog:sync -- --source "$RUNNER_TEMP/hve-core" --ref "$UPSTREAM_REF" --summary "$RUNNER_TEMP/catalog-summary.md"
+
+      - name: Build site
+        run: npm run build
+
+      - name: Detect catalog changes
+        id: changes
+        run: |
+          if git diff --quiet -- src/data/catalog.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Catalog unchanged; no pull request needed."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short_sha="$(node -p "require('./src/data/catalog.json').source.sha.slice(0, 7)")"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$SYNC_BRANCH"
+          git add src/data/catalog.json
+          git commit -m "Sync catalog from microsoft/hve-core $short_sha"
+          git push --force origin "$SYNC_BRANCH"
+          if [ "$(gh pr view "$SYNC_BRANCH" --json state --jq .state 2>/dev/null)" = "OPEN" ]; then
+            gh pr edit "$SYNC_BRANCH" --body-file "$RUNNER_TEMP/catalog-summary.md"
+          else
+            gh pr create --base "$BASE_BRANCH" --head "$SYNC_BRANCH" \
+              --title "Sync catalog from microsoft/hve-core" \
+              --body-file "$RUNNER_TEMP/catalog-summary.md"
+          fi
