@@ -1,17 +1,19 @@
-name: Sync HVE-Core Catalog
+name: Sync catalog from hve-core
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '23 6 * * 1'
   workflow_dispatch:
-  repository_dispatch:
-    types: [hve-core-release]
+    inputs:
+      ref:
+        description: 'microsoft/hve-core branch or tag to sync from'
+        required: false
+        default: 'main'
+        type: string
 
 permissions:
   contents: write
   pull-requests: write
-  attestations: read
-  id-token: write
 
 concurrency:
   group: sync-catalog
@@ -19,110 +21,18 @@ concurrency:
 
 jobs:
   sync:
+    # Only run default-branch code with write credentials; hard-coded like deploy.yml.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REF: ${{ inputs.ref || 'main' }}
+      SYNC_BRANCH: catalog-sync/hve-core
+      BASE_BRANCH: main
     steps:
-      - name: Checkout
+      - name: Checkout default branch
         uses: actions/checkout@v4
-
-      - name: Resolve latest hve-core release
-        id: resolve
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
-        run: |
-          set -euo pipefail
-          # When fired via repository_dispatch with a client_payload.tag, use it
-          # directly and skip the release scan. Otherwise pick the highest-versioned
-          # non-draft release regardless of the prerelease flag. Upstream's active
-          # 3.3.x line is published with prerelease=true, and the only recent
-          # prerelease=false tag (3.2.2) ships empty-stub VSIXes for several
-          # collections.
-          if [ -n "${PAYLOAD_TAG:-}" ]; then
-            rel=$(gh api "repos/microsoft/hve-core/releases/tags/${PAYLOAD_TAG}")
-            tag="$PAYLOAD_TAG"
-          else
-            releases=$(gh api repos/microsoft/hve-core/releases --paginate)
-            rel=$(jq -c '
-              [ .[]
-                | select(.draft == false)
-                | select(.tag_name | test("^hve-core-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
-              ]
-              | sort_by(
-                  (.tag_name | capture("^hve-core-v(?<maj>[0-9]+)\\.(?<min>[0-9]+)\\.(?<pat>[0-9]+)$"))
-                  | [(.maj | tonumber), (.min | tonumber), (.pat | tonumber)]
-                )
-              | last
-            ' <<<"$releases")
-            if [ -z "$rel" ] || [ "$rel" = "null" ]; then
-              echo "No hve-core release found" >&2
-              exit 1
-            fi
-            tag=$(jq -r '.tag_name' <<<"$rel")
-          fi
-          version=${tag#hve-core-v}
-
-          # Allow-list of per-package VSIXes (one per upstream chip; skip
-          # hve-core-all because it duplicates content, and hve-installer
-          # because it has no upstream chip).
-          pkgs=(hve-core hve-coding-standards hve-data-science hve-design-thinking \
-                hve-experimental hve-github hve-gitlab hve-ado hve-jira \
-                hve-project-planning hve-rai-planning hve-security)
-
-          : > assets.txt
-          for p in "${pkgs[@]}"; do
-            name="${p}-${version}.vsix"
-            url=$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .url' <<<"$rel")
-            if [ -z "$url" ] || [ "$url" = "null" ]; then
-              echo "::warning::Asset $name not present on $tag; skipping"
-              continue
-            fi
-            printf '%s\t%s\n' "$name" "$url" >> assets.txt
-          done
-
-          if ! [ -s assets.txt ]; then
-            echo "No per-package assets resolved on $tag" >&2
-            exit 1
-          fi
-
-          echo "tag=$tag"         >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          {
-            echo 'asset_list<<EOF'
-            cut -f1 assets.txt
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-          echo "Resolved $tag with $(wc -l < assets.txt) per-package asset(s)"
-
-      - name: Download, verify, and merge VSIX packages
-        id: merge
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          mkdir -p vendor vendor/merged
-          while IFS=$'\t' read -r name url; do
-            echo "::group::$name"
-            curl -sSL --fail \
-              -H "Accept: application/octet-stream" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              -o "vendor/${name}" "$url"
-            gh attestation verify "vendor/${name}" -R microsoft/hve-core
-            unzip -q -o "vendor/${name}" -d vendor/merged
-            echo "::endgroup::"
-          done < assets.txt
-
-          if [ -d vendor/merged/extension/.github ]; then
-            pkg_root=vendor/merged/extension
-          elif [ -d vendor/merged/.github ]; then
-            echo "::warning::Merged VSIX layout missing 'extension/' prefix; falling back to vendor/merged" >&2
-            pkg_root=vendor/merged
-          else
-            echo "Unexpected merged layout: neither vendor/merged/extension/.github nor vendor/merged/.github exists" >&2
-            exit 1
-          fi
-          echo "pkg_root=$pkg_root" >> "$GITHUB_OUTPUT"
-          echo "Using package root: $pkg_root"
+        with:
+          ref: main
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -133,29 +43,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate upstream ref
+        run: |
+          if ! [[ "$UPSTREAM_REF" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$ ]] || [[ "$UPSTREAM_REF" == *..* ]]; then
+            echo "::error::Invalid upstream ref. Use a branch or tag name."
+            exit 1
+          fi
+
+      - name: Clone microsoft/hve-core
+        run: git clone --depth 1 --branch "$UPSTREAM_REF" https://github.com/microsoft/hve-core.git "$RUNNER_TEMP/hve-core"
+
       - name: Regenerate catalog
+        run: npm run catalog:sync -- --source "$RUNNER_TEMP/hve-core" --ref "$UPSTREAM_REF" --summary "$RUNNER_TEMP/catalog-summary.md"
+
+      - name: Build site
+        run: npm run build
+
+      - name: Detect catalog changes
+        id: changes
+        run: |
+          if git diff --quiet -- src/data/catalog.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Catalog unchanged; no pull request needed."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update pull request
+        if: steps.changes.outputs.changed == 'true'
         env:
-          PKG_ROOT: ${{ steps.merge.outputs.pkg_root }}
-          HVE_CORE_TAG: ${{ steps.resolve.outputs.tag }}
-        run: node scripts/generate-catalog.mjs "$PKG_ROOT"
-
-      - name: Create or update pull request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: chore/sync-hve-core
-          delete-branch: true
-          add-paths: src/data/catalog.json
-          commit-message: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
-          title: 'chore: sync catalog from hve-core ${{ steps.resolve.outputs.tag }}'
-          author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
-          committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
-          body: |
-            Automated catalog regeneration from verified hve-core VSIX packages.
-
-            - Tag: `${{ steps.resolve.outputs.tag }}`
-            - Packages merged:
-              ```
-              ${{ steps.resolve.outputs.asset_list }}
-              ```
-
-            Each VSIX verified with `gh attestation verify -R microsoft/hve-core` before extraction.
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short_sha="$(node -p "require('./src/data/catalog.json').source.sha.slice(0, 7)")"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$SYNC_BRANCH"
+          git add src/data/catalog.json
+          git commit -m "Sync catalog from microsoft/hve-core $short_sha"
+          git push --force origin "$SYNC_BRANCH"
+          if [ "$(gh pr view "$SYNC_BRANCH" --json state --jq .state 2>/dev/null)" = "OPEN" ]; then
+            gh pr edit "$SYNC_BRANCH" --body-file "$RUNNER_TEMP/catalog-summary.md"
+          else
+            gh pr create --base "$BASE_BRANCH" --head "$SYNC_BRANCH" \
+              --title "Sync catalog from microsoft/hve-core" \
+              --body-file "$RUNNER_TEMP/catalog-summary.md"
+          fi
