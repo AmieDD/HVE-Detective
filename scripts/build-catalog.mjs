@@ -72,10 +72,15 @@ function parseBody(body) {
   const paragraph = [];
   let intro = null;
   let fence = null;
+  let inComment = false;
   const closeParagraph = () => {
     if (intro === null && paragraph.length) intro = paragraph.join(' ');
   };
   for (const line of body.split('\n')) {
+    if (inComment) {
+      if (line.includes('-->')) inComment = false;
+      continue;
+    }
     const fenceMatch = line.match(/^\s{0,3}(`{3,}|~{3,})/);
     if (fenceMatch) {
       const marker = fenceMatch[1];
@@ -85,6 +90,11 @@ function parseBody(body) {
       continue;
     }
     if (fence) continue;
+    const trimmed = line.trim();
+    if (trimmed.startsWith('<!--')) {
+      if (!trimmed.includes('-->', 4)) inComment = true;
+      continue;
+    }
     const heading = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
     if (heading) {
       const level = heading[1].length;
@@ -93,9 +103,8 @@ function parseBody(body) {
       continue;
     }
     if (intro !== null) continue;
-    const trimmed = line.trim();
     if (trimmed === '') closeParagraph();
-    else if (!/^<!--.*-->$/.test(trimmed)) paragraph.push(trimmed);
+    else paragraph.push(trimmed);
   }
   closeParagraph();
   return { intro: intro ?? '', headings };
