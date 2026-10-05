@@ -3,8 +3,8 @@
   "source": {
     "repo": "microsoft/hve-core",
     "ref": "main",
-    "sha": "5e7f576952f18bfd3e4340c772734bb662a34567",
-    "committedAt": "2026-09-25T16:21:53-07:00"
+    "sha": "18f5ac75a1556e49f1e90647a4816d17499e1d7f",
+    "committedAt": "2026-10-04T13:35:52-07:00"
   },
   "agents": [
     {
@@ -474,7 +474,7 @@
           "text": "Error Recovery"
         }
       ],
-      "lineCount": 272
+      "lineCount": 274
     },
     {
       "kind": "agent",
@@ -960,7 +960,7 @@
           "text": "Required Protocol"
         }
       ],
-      "lineCount": 358
+      "lineCount": 360
     },
     {
       "kind": "agent",
@@ -1337,6 +1337,82 @@
     },
     {
       "kind": "agent",
+      "path": "agents/experimental/hve-demo-material.agent.md",
+      "slug": "hve-demo-material",
+      "name": "HVE Demo Material Builder",
+      "description": "Orchestrates levelled L100-L400 training decks and narrated MP4 demos for any repository topic, attended or unattended, with HVE Core as the default in the hve-core repository. Use when producing levelled repository demo material.",
+      "collection": "experimental",
+      "subagent": false,
+      "userInvocable": true,
+      "disableModelInvocation": false,
+      "subagents": [
+        "PowerPoint Subagent"
+      ],
+      "handoffs": [],
+      "argumentHint": "",
+      "intro": "Coordinate the production of L100-L400 demo material at the requested autonomy level. Keep all generated work inside the selected level's `.copilot-tracking/demo-material/` directory.",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Role"
+        },
+        {
+          "level": 2,
+          "text": "Goal"
+        },
+        {
+          "level": 2,
+          "text": "Inputs"
+        },
+        {
+          "level": 2,
+          "text": "Success Criteria"
+        },
+        {
+          "level": 2,
+          "text": "Autonomy"
+        },
+        {
+          "level": 2,
+          "text": "Constraints"
+        },
+        {
+          "level": 2,
+          "text": "Stop Rules"
+        },
+        {
+          "level": 2,
+          "text": "Workflow"
+        },
+        {
+          "level": 3,
+          "text": "1. Confirm Scope and Prerequisites"
+        },
+        {
+          "level": 3,
+          "text": "2. Resolve Sources and Storyboard"
+        },
+        {
+          "level": 3,
+          "text": "3. Build and Validate the Deck"
+        },
+        {
+          "level": 3,
+          "text": "4. Capture and Narrate"
+        },
+        {
+          "level": 3,
+          "text": "5. Verify and Finalize"
+        },
+        {
+          "level": 2,
+          "text": "Response Format"
+        }
+      ],
+      "lineCount": 273
+    },
+    {
+      "kind": "agent",
       "path": "agents/experimental/pptx.agent.md",
       "slug": "pptx",
       "name": "PowerPoint Builder",
@@ -1577,7 +1653,7 @@
         },
         {
           "level": 3,
-          "text": "One-pass gate records"
+          "text": "Critique and Review records"
         },
         {
           "level": 3,
@@ -1616,7 +1692,7 @@
           "text": "Response contract"
         }
       ],
-      "lineCount": 200
+      "lineCount": 197
     },
     {
       "kind": "agent",
@@ -1816,7 +1892,7 @@
           "text": "Response Format"
         }
       ],
-      "lineCount": 104
+      "lineCount": 105
     },
     {
       "kind": "agent",
@@ -2208,7 +2284,7 @@
           "text": "Example Interaction Flows"
         }
       ],
-      "lineCount": 267
+      "lineCount": 268
     },
     {
       "kind": "agent",
@@ -2256,7 +2332,7 @@
           "text": "Conversation Guidelines"
         }
       ],
-      "lineCount": 69
+      "lineCount": 74
     },
     {
       "kind": "agent",
@@ -2682,7 +2758,7 @@
           "text": "Post-Summarization Recovery"
         }
       ],
-      "lineCount": 625
+      "lineCount": 629
     },
     {
       "kind": "agent",
@@ -3083,6 +3159,10 @@
       "headings": [
         {
           "level": 2,
+          "text": "Non-negotiable output rules"
+        },
+        {
+          "level": 2,
           "text": "Goal"
         },
         {
@@ -3154,7 +3234,7 @@
           "text": "Final response contract"
         }
       ],
-      "lineCount": 180
+      "lineCount": 193
     },
     {
       "kind": "agent",
@@ -3274,7 +3354,7 @@
           "text": "Operational Constraints"
         }
       ],
-      "lineCount": 407
+      "lineCount": 409
     },
     {
       "kind": "agent",
@@ -3580,7 +3660,7 @@
           "text": "Operational Constraints"
         }
       ],
-      "lineCount": 348
+      "lineCount": 352
     },
     {
       "kind": "agent",
@@ -3707,7 +3787,7 @@
           "text": "Required Protocol"
         }
       ],
-      "lineCount": 281
+      "lineCount": 282
     },
     {
       "kind": "agent",
@@ -5214,48 +5294,6 @@
     },
     {
       "kind": "prompt",
-      "path": "prompts/experimental/graph-research.prompt.md",
-      "slug": "graph-research",
-      "command": "/graph-research",
-      "description": "Research a codebase through rpi-research using an existing graphify knowledge graph, with audit-tagged evidence reporting",
-      "collection": "experimental",
-      "agent": "",
-      "argumentHint": "topic=... [chat={true|false}]",
-      "intro": "Activate `rpi-research` to investigate a structural question against a pre-built [graphify](https://github.com/safishamsi/graphify) knowledge graph. This prompt adds graph-specific evidence rules for questions where typed graph queries are sharper than codebase search.",
-      "headings": [
-        {
-          "level": 2,
-          "text": "Inputs"
-        },
-        {
-          "level": 2,
-          "text": "Prerequisites"
-        },
-        {
-          "level": 2,
-          "text": "Tool Routing — Graph Beats Grep When…"
-        },
-        {
-          "level": 2,
-          "text": "Tool Routing — Grep Beats Graph When…"
-        },
-        {
-          "level": 2,
-          "text": "Reporting Discipline"
-        },
-        {
-          "level": 2,
-          "text": "Sensitive-Tree Fallback"
-        },
-        {
-          "level": 2,
-          "text": "Requirements"
-        }
-      ],
-      "lineCount": 112
-    },
-    {
-      "kind": "prompt",
       "path": "prompts/hve-core/ado-create-pull-request.prompt.md",
       "slug": "ado-create-pull-request",
       "command": "/ado-create-pull-request",
@@ -6277,7 +6315,7 @@
           "text": "Final Response Contract"
         }
       ],
-      "lineCount": 144
+      "lineCount": 149
     },
     {
       "kind": "skill",
@@ -7294,6 +7332,10 @@
         },
         {
           "level": 2,
+          "text": "Failure Behavior"
+        },
+        {
+          "level": 2,
           "text": "Narration Quality"
         },
         {
@@ -7317,7 +7359,60 @@
           "text": "Windows"
         }
       ],
-      "lineCount": 110
+      "lineCount": 115
+    },
+    {
+      "kind": "skill",
+      "path": "skills/experimental/hve-demo-material/SKILL.md",
+      "slug": "hve-demo-material",
+      "command": "/hve-demo-material",
+      "name": "hve-demo-material",
+      "description": "Create levelled demo decks and narrated MP4s for any repository topic, with HVE Core as the default in the hve-core repository. Use when training or demo material is needed for L100 through L400 audiences.",
+      "collection": "experimental",
+      "userInvocable": true,
+      "disableModelInvocation": false,
+      "argumentHint": "",
+      "license": null,
+      "intro": "Produce an evidence-backed PowerPoint deck and narrated MP4 for each requested depth level and topic. This skill defines the artifact-defined L100-L400 level contracts, topic resolution, output contract, and quality gates for the repository. Level and topic are orthogonal: level sets audience, duration, capture fidelity, and criterion templates, while topic sets the source set.",
+      "headings": [
+        {
+          "level": 2,
+          "text": "Goal"
+        },
+        {
+          "level": 2,
+          "text": "Flow"
+        },
+        {
+          "level": 2,
+          "text": "Inputs"
+        },
+        {
+          "level": 2,
+          "text": "Success Criteria"
+        },
+        {
+          "level": 2,
+          "text": "Constraints"
+        },
+        {
+          "level": 2,
+          "text": "Stop Rules"
+        },
+        {
+          "level": 2,
+          "text": "Scripted Rendering"
+        },
+        {
+          "level": 2,
+          "text": "Handoff"
+        },
+        {
+          "level": 2,
+          "text": "Response Contract"
+        }
+      ],
+      "lineCount": 196
     },
     {
       "kind": "skill",
@@ -7398,7 +7493,7 @@
           "text": "License"
         }
       ],
-      "lineCount": 440
+      "lineCount": 447
     },
     {
       "kind": "skill",
@@ -7503,7 +7598,7 @@
           "text": "Environment Recovery"
         }
       ],
-      "lineCount": 263
+      "lineCount": 265
     },
     {
       "kind": "skill",
@@ -7511,13 +7606,13 @@
       "slug": "tts-voiceover",
       "command": "/tts-voiceover",
       "name": "tts-voiceover",
-      "description": "Text-to-speech voice-over generation from YAML speaker notes using Azure Speech SDK with SSML pronunciation control",
+      "description": "Text-to-speech voice-over generation from YAML speaker notes using Azure Speech SDK with SSML pronunciation control, or an offline Piper engine that needs no credentials",
       "collection": "experimental",
       "userInvocable": true,
       "disableModelInvocation": false,
       "argumentHint": "",
       "license": null,
-      "intro": "Generates per-slide WAV voice-over files from YAML `speaker_notes` using Azure Speech SDK with SSML pronunciation control.",
+      "intro": "Generates per-slide WAV voice-over files from YAML `speaker_notes` using Azure Speech SDK with SSML pronunciation control, or a locally installed Piper engine.",
       "headings": [
         {
           "level": 2,
@@ -7534,6 +7629,10 @@
         {
           "level": 3,
           "text": "Microsoft Entra ID Auth"
+        },
+        {
+          "level": 3,
+          "text": "Piper Engine"
         },
         {
           "level": 2,
@@ -7572,7 +7671,7 @@
           "text": "Troubleshooting"
         }
       ],
-      "lineCount": 195
+      "lineCount": 241
     },
     {
       "kind": "skill",
@@ -7721,7 +7820,7 @@
           "text": "Temporary palette file remains"
         }
       ],
-      "lineCount": 347
+      "lineCount": 352
     },
     {
       "kind": "skill",
@@ -7729,7 +7828,7 @@
       "slug": "vscode-playwright",
       "command": "/vscode-playwright",
       "name": "vscode-playwright",
-      "description": "VS Code screenshot capture using Playwright MCP with serve-web for slide decks and documentation",
+      "description": "VS Code screenshot capture with serve-web for slide decks and documentation, either scripted headless for CI or interactive through Playwright MCP",
       "collection": "experimental",
       "userInvocable": true,
       "disableModelInvocation": false,
@@ -7743,7 +7842,15 @@
         },
         {
           "level": 2,
+          "text": "Scripted Capture"
+        },
+        {
+          "level": 2,
           "text": "Prerequisites"
+        },
+        {
+          "level": 2,
+          "text": "Verified Constraints"
         },
         {
           "level": 2,
@@ -7798,7 +7905,7 @@
           "text": "Troubleshooting"
         }
       ],
-      "lineCount": 191
+      "lineCount": 218
     },
     {
       "kind": "skill",
@@ -8254,7 +8361,7 @@
       "slug": "vally-tests",
       "command": "/vally-tests",
       "name": "vally-tests",
-      "description": "Authors Vally conformance tests for prompts, instructions, agents, and skills, including refusals for jailbreak, prompt-injection, harmful-elicitation, TOS, CoC, and PII-extraction stimuli",
+      "description": "Authors Vally conformance tests for prompts, instructions, agents, and skills, and refuses jailbreak, prompt-injection, harmful-elicitation, TOS, CoC, and PII-extraction stimuli",
       "collection": "hve-core",
       "userInvocable": true,
       "disableModelInvocation": false,
@@ -8299,7 +8406,7 @@
           "text": "Contributing"
         }
       ],
-      "lineCount": 138
+      "lineCount": 140
     },
     {
       "kind": "skill",
@@ -9823,7 +9930,7 @@
           "text": "Return to Caller"
         }
       ],
-      "lineCount": 79
+      "lineCount": 78
     },
     {
       "kind": "skill",
@@ -9831,11 +9938,11 @@
       "slug": "rpi-plan-critique",
       "command": "/rpi-plan-critique",
       "name": "rpi-plan-critique",
-      "description": "Independently assess an RPI plan without editing it. Use for an initial critique, revision-bound closure, or planner-authorized recovery including infrastructure retry.",
+      "description": "Independently assess an RPI plan without editing it. Use when an implementation-ready plan needs a credibility check or a revised plan needs its earlier findings reconciled.",
       "collection": "rpi",
       "userInvocable": true,
       "disableModelInvocation": false,
-      "argumentHint": "[plan=...] [evidence=...] [output=...] [depth={standard|deep}]",
+      "argumentHint": "[plan=...] [evidence=...] [output=...] [depth={standard|deep}] [prior=...]",
       "license": "MIT",
       "intro": "Return one substantive, evidence-grounded credibility assessment of an RPI implementation plan. Assess the plan against the supplied evidence with fresh eyes rather than the drafting reasoning. Complete the material assessment as quickly as the supplied evidence permits by default; broaden depth only when the user explicitly requests `deep`. The critique is read-only with respect to the plan and writes only the caller-specified critique artifact.",
       "headings": [
@@ -9876,7 +9983,7 @@
           "text": "Final response contract"
         }
       ],
-      "lineCount": 93
+      "lineCount": 84
     },
     {
       "kind": "skill",
@@ -9884,11 +9991,11 @@
       "slug": "rpi-plan",
       "command": "/rpi-plan",
       "name": "rpi-plan",
-      "description": "Create or resume an evidence-based RPI implementation plan. Use for planning, interrupted critiques, or bounded critique infrastructure recovery.",
+      "description": "Create or resume an evidence-based RPI implementation plan with an optional independent critique. Use when a task needs an implementation plan or an existing plan needs revision.",
       "collection": "rpi",
       "userInvocable": true,
       "disableModelInvocation": false,
-      "argumentHint": "[task=...] [research=...] [context=...] [draft=...] [decisions=...] [critique={standard|deep}]",
+      "argumentHint": "[task=...] [research=...] [context=...] [draft=...] [decisions=...] [critique={standard|deep|skip}]",
       "license": "MIT",
       "intro": "Produce one implementation-ready, human-readable Markdown plan. Lead with the executive summary and the Phase Checklist so a reader sees what will change and how it is sequenced first; put user direction, pending decisions, readiness, goals, scope, requirements, risks, sources, and critique records after the checklist. Keep implementation context under the task that consumes it. The primary planner authors the plan and owns orchestration, revisions, critique timing, and the final readiness decision.",
       "headings": [
@@ -9929,7 +10036,7 @@
           "text": "Final Response"
         }
       ],
-      "lineCount": 111
+      "lineCount": 106
     },
     {
       "kind": "skill",
@@ -9937,7 +10044,7 @@
       "slug": "rpi-research",
       "command": "/rpi-research",
       "name": "rpi-research",
-      "description": "Research-only RPI playbook that gathers task evidence, writes dated research artifacts under .copilot-tracking/research/, and hands off planning-ready findings. Use when the user needs evidence, alternatives, or task framing first.",
+      "description": "Research-only RPI playbook that gathers task evidence, writes dated research artifacts under .copilot-tracking/research/ or a caller's trusted evidence root, and hands off planning-ready findings. Use when the user needs evidence, alternatives, or task framing first.",
       "collection": "rpi",
       "userInvocable": true,
       "disableModelInvocation": false,
@@ -10035,7 +10142,7 @@
           "text": "Final response"
         }
       ],
-      "lineCount": 93
+      "lineCount": 91
     },
     {
       "kind": "skill",
@@ -10165,6 +10272,10 @@
           "text": "Key fields"
         },
         {
+          "level": 3,
+          "text": "Resolution policy"
+        },
+        {
           "level": 2,
           "text": "Code Scanning Analyses"
         },
@@ -10189,7 +10300,7 @@
           "text": "Troubleshooting"
         }
       ],
-      "lineCount": 235
+      "lineCount": 248
     },
     {
       "kind": "skill",
